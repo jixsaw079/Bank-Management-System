@@ -475,6 +475,8 @@ void repayLoan(void)
             printf("Loan repayment successful!\n");
             printf("Remaining loan: %.2f\n", accounts[i].loan);
             printf("Remaining balance: %.2f\n", accounts[i].balance);
+            if (!saveAccounts())
+                printf("Warning: this change is not safely saved to disk.\n");
             return;
         }
     }
