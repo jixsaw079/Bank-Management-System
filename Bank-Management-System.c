@@ -1,5 +1,5 @@
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <math.h>
 
 #define MAX_ACCOUNTS 100
 
@@ -9,25 +9,30 @@ struct Account
     char name[50];
     float balance;
     float loan;
-}
-;
+};
 
-struct Account
-accounts[MAX_ACCOUNTS];
-int accountCount=0;
+struct Account accounts[MAX_ACCOUNTS];
+int accountCount = 0;
 
-void createAccount();
-void viewAccounts();
-void depositMoney();
-void withdrawMoney();
-void checkBalance();
-void transferMoney();
-void applyLoan();
-void repayLoan();
+void clearInputBuffer(void);
+int readInt(const char prompt[], int *value);
+int readFloat(const char prompt[], float *value);
+int readName(char name[]);
+void createAccount(void);
+void viewAccounts(void);
+void depositMoney(void);
+void withdrawMoney(void);
+void checkBalance(void);
+void transferMoney(void);
+void applyLoan(void);
+void repayLoan(void);
 
-int main(){
+int main(void)
+{
     int choice;
-    while(1){
+
+    while (1)
+    {
         printf("\n==== BANK MANAGEMENT SYSTEM ====\n");
         printf("1. Create Account\n");
         printf("2. View All Accounts\n");
@@ -38,227 +43,441 @@ int main(){
         printf("7. Apply For Loan\n");
         printf("8. Repay Loan\n");
         printf("0. Exit\n");
-        printf("Enter choice: ");
-        scanf("%d",&choice);
 
-        if(choice == 1)
-          createAccount();
-        else if(choice == 2)
-          viewAccounts();
-        else if(choice == 3)
-          depositMoney();
-        else if(choice == 4)
-          withdrawMoney();
-        else if(choice == 5)
-          checkBalance();
-        else if(choice == 6)
-          transferMoney();
-        else if(choice == 7)
-          applyLoan();
-        else if(choice == 8)
-          repayLoan();
-        else if(choice == 0)
-          break;
+        if (!readInt("Enter choice: ", &choice))
+        {
+            printf("Please enter a valid menu number.\n");
+            continue;
+        }
+
+        if (choice == 1)
+            createAccount();
+        else if (choice == 2)
+            viewAccounts();
+        else if (choice == 3)
+            depositMoney();
+        else if (choice == 4)
+            withdrawMoney();
+        else if (choice == 5)
+            checkBalance();
+        else if (choice == 6)
+            transferMoney();
+        else if (choice == 7)
+            applyLoan();
+        else if (choice == 8)
+            repayLoan();
+        else if (choice == 0)
+            break;
         else
-        printf("Invalid Choice!\n");
+            printf("Invalid choice! Please select 0 to 8.\n");
     }
+
+    printf("Thank you for using the Bank Management System.\n");
     return 0;
 }
 
-void createAccount()
+/* Remove any extra characters left on the current input line. */
+void clearInputBuffer(void)
 {
-    accounts[accountCount].accountNumber=1001+accountCount;
+    int character;
 
-    printf("Enter Name: ");
-    scanf("%49s",&accounts[accountCount].name);
+    while ((character = getchar()) != '\n' && character != EOF)
+    {
+        /* Keep reading until the end of the line. */
+    }
+}
 
-    printf("Enter Initial Deposit: ");
-    scanf("%f",&accounts[accountCount].balance);
+/* Read an integer safely. */
+int readInt(const char prompt[], int *value)
+{
+    printf("%s", prompt);
 
-    accounts[accountCount].loan = 0; //Initialize loan amount
+    if (scanf("%d", value) != 1)
+    {
+        clearInputBuffer();
+        return 0;
+    }
 
-    printf("Account created! \nAccount Number: %d\n",accounts[accountCount].accountNumber);
+    clearInputBuffer();
+    return 1;
+}
+
+/* Read a number and reject invalid values such as text or infinity. */
+int readFloat(const char prompt[], float *value)
+{
+    printf("%s", prompt);
+
+    if (scanf("%f", value) != 1 || !isfinite(*value))
+    {
+        clearInputBuffer();
+        return 0;
+    }
+
+    clearInputBuffer();
+    return 1;
+}
+
+/* Read a name that may contain spaces, with room for the null character. */
+int readName(char name[])
+{
+    printf("Enter name: ");
+
+    if (scanf(" %49[^\n]", name) != 1)
+    {
+        clearInputBuffer();
+        printf("Invalid name. Please try again.\n");
+        return 0;
+    }
+
+    clearInputBuffer();
+    return 1;
+}
+
+void createAccount(void)
+{
+    float initialDeposit;
+
+    if (accountCount >= MAX_ACCOUNTS)
+    {
+        printf("Account limit reached. No more accounts can be created.\n");
+        return;
+    }
+
+    if (!readName(accounts[accountCount].name))
+        return;
+
+    if (!readFloat("Enter initial deposit (0 or more): ", &initialDeposit))
+    {
+        printf("Invalid amount. Please enter a number.\n");
+        return;
+    }
+
+    if (initialDeposit < 0)
+    {
+        printf("Initial deposit cannot be negative.\n");
+        return;
+    }
+
+    accounts[accountCount].accountNumber = 1001 + accountCount;
+    accounts[accountCount].balance = initialDeposit;
+    accounts[accountCount].loan = 0;
+
+    printf("Account created successfully!\n");
+    printf("Account number: %d\n", accounts[accountCount].accountNumber);
 
     accountCount++;
 }
 
-void viewAccounts(){
+void viewAccounts(void)
+{
     int i;
-    if(accountCount==0){
-        printf("No Account Found\n");
+
+    if (accountCount == 0)
+    {
+        printf("No accounts found.\n");
         return;
     }
 
-    for(i=0;i<accountCount;i++){
-        printf("\nAccount Number: %d\n",accounts[i].accountNumber);
-        printf("Name: %s\n",accounts[i].name);
-        printf("Balance: %.2f\n",accounts[i].balance);
-        printf("Loan: %.2f\n",accounts[i].loan);
+    for (i = 0; i < accountCount; i++)
+    {
+        printf("\nAccount number: %d\n", accounts[i].accountNumber);
+        printf("Name: %s\n", accounts[i].name);
+        printf("Balance: %.2f\n", accounts[i].balance);
+        printf("Outstanding loan: %.2f\n", accounts[i].loan);
     }
 }
 
- void depositMoney(){
-
-    int accountNumber;
-    float amount;
-    int i;
-
-    printf("Enter Account Number: ");
-    scanf("%d",&accountNumber);
-
-    for(i=0;i<accountCount;i++){
-        if(accounts[i].accountNumber==accountNumber){
-            printf("Enter Deposit Amount: ");
-            scanf("%f",&amount);
-
-            accounts[i].balance=accounts[i].balance + amount;
-
-            printf("Deposit Successful!\n");
-            printf("New Balance: %.2f\n",accounts[i].balance);
-            return;
-        }
-    }
-    printf("Account not found!\n");
- }
-
- void withdrawMoney(){
-    int accountNumber;
-    float amount;
-    int i;
-
-    printf("Enter Account Number: ");
-    scanf("%d",&accountNumber);
-
-    for(i=0;i<accountCount;i++){
-        if(accounts[i].accountNumber== accountNumber){
-            printf("Enter Withdrawal Amount: ");
-            scanf("%f",&amount);
-
-            if(amount>accounts[i].balance){
-                printf("Insufficient Balance!\n");
-            }
-            else{
-                accounts[i].balance= accounts[i].balance-amount;
-
-                printf("Withdrawal Successful!\n");
-                printf("Remaining Balance:%.2f\n",accounts[i].balance);
-            }
-            return;
-        }
-    }
-    printf("Account not found!\n");
- }
-
- void checkBalance(){
+void depositMoney(void)
+{
     int accountNumber;
     int i;
-
-    printf("Enter account number: ");
-    scanf("%d",&accountNumber);
-
-    for(i=0;i<accountCount;i++){
-        if(accounts[i].accountNumber==accountNumber){
-            printf("Current Balance: %.2f\n",accounts[i].balance);
-            return;
-        }
-    }
-    printf("Account not found!\n");
- }
-
- void transferMoney(){
-    int sender,receiver;
     float amount;
-    int i,j;
 
-    printf("Enter sender account number: ");
-    scanf("%d",&sender);
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
 
-    printf("Enter receiver account number: ");
-    scanf("%d",&receiver);
-
-    printf("Enter transfer amount: ");
-    scanf("%f",&amount);
-
-    for(i=0;i<accountCount;i++){
-        if(accounts[i].accountNumber==sender){
-            if(accounts[i].balance<amount){
-                printf("Insufficient Balance!\n");
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            if (!readFloat("Enter deposit amount: ", &amount))
+            {
+                printf("Invalid amount.\n");
                 return;
             }
-            for(i=0;j<accountCount;j++){
-                if(accounts[j].accountNumber==receiver){
-                    accounts[i].balance=accounts[i].balance-amount;
-                    accounts[j].balance = accounts[j].balance + amount;
 
-                    printf("Transfer successful!\n");
-                    return;
-                }
+            if (amount <= 0)
+            {
+                printf("Deposit amount must be greater than zero.\n");
+                return;
             }
-            printf("Receiver account not found!\n");
+
+            accounts[i].balance += amount;
+            printf("Deposit successful!\n");
+            printf("New balance: %.2f\n", accounts[i].balance);
             return;
         }
     }
-    printf("Sender account not found!\n");
- }
 
- void applyLoan(){
+    printf("Account not found.\n");
+}
+
+void withdrawMoney(void)
+{
     int accountNumber;
+    int i;
     float amount;
+
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            if (!readFloat("Enter withdrawal amount: ", &amount))
+            {
+                printf("Invalid amount.\n");
+                return;
+            }
+
+            if (amount <= 0)
+            {
+                printf("Withdrawal amount must be greater than zero.\n");
+                return;
+            }
+
+            if (amount > accounts[i].balance)
+            {
+                printf("Insufficient balance.\n");
+                return;
+            }
+
+            accounts[i].balance -= amount;
+            printf("Withdrawal successful!\n");
+            printf("Remaining balance: %.2f\n", accounts[i].balance);
+            return;
+        }
+    }
+
+    printf("Account not found.\n");
+}
+
+void checkBalance(void)
+{
+    int accountNumber;
     int i;
 
-    printf("Enter account number: ");
-    scanf("%d",&accountNumber);
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
 
-    for(i=0;i<accountNumber;i++){
-        if(accounts[i].accountNumber==accountNumber){
-            printf("Enter loan amount: ");
-            scanf("%f",&amount);
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            printf("Current balance: %.2f\n", accounts[i].balance);
+            printf("Outstanding loan: %.2f\n", accounts[i].loan);
+            return;
+        }
+    }
+
+    printf("Account not found.\n");
+}
+
+void transferMoney(void)
+{
+    int sender;
+    int receiver;
+    int senderIndex = 0;
+    int receiverIndex = 0;
+    int senderFound = 0;
+    int receiverFound = 0;
+    int i;
+    float amount;
+
+    if (!readInt("Enter sender account number: ", &sender))
+    {
+        printf("Invalid sender account number.\n");
+        return;
+    }
+
+    if (!readInt("Enter receiver account number: ", &receiver))
+    {
+        printf("Invalid receiver account number.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == sender)
+        {
+            senderIndex = i;
+            senderFound = 1;
+            break;
+        }
+    }
+
+    if (!senderFound)
+    {
+        printf("Sender account not found.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == receiver)
+        {
+            receiverIndex = i;
+            receiverFound = 1;
+            break;
+        }
+    }
+
+    if (!receiverFound)
+    {
+        printf("Receiver account not found.\n");
+        return;
+    }
+
+    if (senderIndex == receiverIndex)
+    {
+        printf("Sender and receiver must be different accounts.\n");
+        return;
+    }
+
+    if (!readFloat("Enter transfer amount: ", &amount))
+    {
+        printf("Invalid amount.\n");
+        return;
+    }
+
+    if (amount <= 0)
+    {
+        printf("Transfer amount must be greater than zero.\n");
+        return;
+    }
+
+    if (amount > accounts[senderIndex].balance)
+    {
+        printf("Insufficient balance.\n");
+        return;
+    }
+
+    accounts[senderIndex].balance -= amount;
+    accounts[receiverIndex].balance += amount;
+
+    printf("Transfer successful!\n");
+    printf("Sender's remaining balance: %.2f\n", accounts[senderIndex].balance);
+    printf("Receiver's new balance: %.2f\n", accounts[receiverIndex].balance);
+}
+
+void applyLoan(void)
+{
+    int accountNumber;
+    int i;
+    float amount;
+
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            if (!readFloat("Enter loan amount: ", &amount))
+            {
+                printf("Invalid amount.\n");
+                return;
+            }
+
+            if (amount <= 0)
+            {
+                printf("Loan amount must be greater than zero.\n");
+                return;
+            }
 
             accounts[i].loan += amount;
             accounts[i].balance += amount;
 
-            printf("Loan Approved!\n");
-            printf("Loan Amount: %.2f\n",accounts[i].loan);
-            printf("New Balance: %.2f\n",accounts[i].balance);
-
+            printf("Loan recorded successfully for this educational simulation.\n");
+            printf("Outstanding loan: %.2f\n", accounts[i].loan);
+            printf("Available balance: %.2f\n", accounts[i].balance);
             return;
         }
     }
-    printf("Account not found!\n");
- }
 
- void repayLoan(){
+    printf("Account not found.\n");
+}
+
+void repayLoan(void)
+{
     int accountNumber;
-    float amount;
     int i;
-    printf("Enter account number: ");
-    scanf("%d",&accountNumber);
+    float amount;
 
-    for(i=0;i<accountCount;i++){
-        if(accounts[i].accountNumber== accountNumber){
-            if(accounts[i].loan==0){
-                printf("No loan to repay\n");
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            if (accounts[i].loan <= 0)
+            {
+                printf("This account has no outstanding loan.\n");
                 return;
             }
-            printf("Current loan: %.2f\n",accounts[i].loan);
-            printf("Enter repayment amount: ");
-            scanf("%f",&amount);
 
-            if(amount>accounts[i].balance){
-                printf("Insufficient balance!\n");
+            printf("Outstanding loan: %.2f\n", accounts[i].loan);
+
+            if (!readFloat("Enter repayment amount: ", &amount))
+            {
+                printf("Invalid amount.\n");
                 return;
             }
-            if(amount>accounts[i].loan)
-            amount = accounts[i].loan;
 
-            accounts[i].balance-=amount;
-            accounts[i].loan -=amount;
+            if (amount <= 0)
+            {
+                printf("Repayment amount must be greater than zero.\n");
+                return;
+            }
+
+            if (amount > accounts[i].loan)
+            {
+                amount = accounts[i].loan;
+                printf("Repayment adjusted to the outstanding loan amount.\n");
+            }
+
+            if (amount > accounts[i].balance)
+            {
+                printf("Insufficient balance to make this repayment.\n");
+                return;
+            }
+
+            accounts[i].balance -= amount;
+            accounts[i].loan -= amount;
 
             printf("Loan repayment successful!\n");
-            printf("Remaining loan: %.2f\n",accounts[i].loan);
-            printf("Remaining Balance: %.2f\n",accounts[i].balance);
+            printf("Remaining loan: %.2f\n", accounts[i].loan);
+            printf("Remaining balance: %.2f\n", accounts[i].balance);
             return;
         }
     }
-    printf("Account not found!\n");
- }
+
+    printf("Account not found.\n");
+}
