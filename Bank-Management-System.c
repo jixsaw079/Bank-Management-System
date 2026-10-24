@@ -13,6 +13,8 @@ struct Account
 
 struct Account accounts[MAX_ACCOUNTS];
 int accountCount = 0;
+int nextAccountNumber = 1001;
+#define DATA_FILE "accounts.txt"
 
 void clearInputBuffer(void);
 int readInt(const char prompt[], int *value);
@@ -26,10 +28,17 @@ void checkBalance(void);
 void transferMoney(void);
 void applyLoan(void);
 void repayLoan(void);
+int loadAccounts(void);
+int saveAccounts(void);
 
 int main(void)
 {
     int choice;
+
+    if (loadAccounts())
+        printf("Loaded %d account(s) from %s.\n", accountCount, DATA_FILE);
+    else
+        printf("No saved account data loaded. Starting with an empty account list.\n");
 
     while (1)
     {
@@ -67,13 +76,96 @@ int main(void)
         else if (choice == 8)
             repayLoan();
         else if (choice == 0)
+        {
+            if (!saveAccounts())
+                printf("Warning: account data could not be saved.\n");
             break;
+        }
         else
             printf("Invalid choice! Please select 0 to 8.\n");
     }
 
     printf("Thank you for using the Bank Management System.\n");
     return 0;
+}
+
+/* Load account records from a text file when the program starts. */
+int loadAccounts(void)
+{
+    FILE *file = fopen(DATA_FILE, "r");
+    int loaded = 0;
+
+    if (file == NULL)
+        return 0;
+
+    accountCount = 0;
+    nextAccountNumber = 1001;
+
+    while (accountCount < MAX_ACCOUNTS &&
+           fscanf(file, "%d|%49[^|]|%f|%f",
+                  &accounts[accountCount].accountNumber,
+                  accounts[accountCount].name,
+                  &accounts[accountCount].balance,
+                  &accounts[accountCount].loan) == 4)
+    {
+        int ch;
+
+        if (accounts[accountCount].accountNumber <= 0 ||
+            !isfinite(accounts[accountCount].balance) ||
+            !isfinite(accounts[accountCount].loan) ||
+            accounts[accountCount].balance < 0 ||
+            accounts[accountCount].loan < 0)
+        {
+            printf("Warning: invalid account record found; loading stopped.\n");
+            break;
+        }
+
+        if (accounts[accountCount].accountNumber >= nextAccountNumber)
+            nextAccountNumber = accounts[accountCount].accountNumber + 1;
+
+        accountCount++;
+        loaded = 1;
+        while ((ch = fgetc(file)) != '\n' && ch != EOF)
+        {
+            /* Skip any extra characters on this record. */
+        }
+    }
+
+    fclose(file);
+    return loaded;
+}
+
+/* Save all current accounts to a text file. */
+int saveAccounts(void)
+{
+    FILE *file = fopen(DATA_FILE, "w");
+    int i;
+
+    if (file == NULL)
+    {
+        printf("Error: could not open %s for writing.\n", DATA_FILE);
+        return 0;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (fprintf(file, "%d|%s|%.2f|%.2f\n",
+                    accounts[i].accountNumber, accounts[i].name,
+                    accounts[i].balance, accounts[i].loan) < 0)
+        {
+            fclose(file);
+            printf("Error: failed while writing account data.\n");
+            return 0;
+        }
+    }
+
+    if (fclose(file) != 0)
+    {
+        printf("Error: could not finish saving account data.\n");
+        return 0;
+    }
+
+    return 1;
 }
 
 /* Remove any extra characters left on the current input line. */
@@ -158,7 +250,7 @@ void createAccount(void)
         return;
     }
 
-    accounts[accountCount].accountNumber = 1001 + accountCount;
+    accounts[accountCount].accountNumber = nextAccountNumber++;
     accounts[accountCount].balance = initialDeposit;
     accounts[accountCount].loan = 0;
 
@@ -166,6 +258,8 @@ void createAccount(void)
     printf("Account number: %d\n", accounts[accountCount].accountNumber);
 
     accountCount++;
+    if (!saveAccounts())
+        printf("Warning: this change is not safely saved to disk.\n");
 }
 
 void viewAccounts(void)
@@ -218,6 +312,8 @@ void depositMoney(void)
             accounts[i].balance += amount;
             printf("Deposit successful!\n");
             printf("New balance: %.2f\n", accounts[i].balance);
+            if (!saveAccounts())
+                printf("Warning: this change is not safely saved to disk.\n");
             return;
         }
     }
@@ -262,6 +358,8 @@ void withdrawMoney(void)
             accounts[i].balance -= amount;
             printf("Withdrawal successful!\n");
             printf("Remaining balance: %.2f\n", accounts[i].balance);
+            if (!saveAccounts())
+                printf("Warning: this change is not safely saved to disk.\n");
             return;
         }
     }
@@ -378,6 +476,8 @@ void transferMoney(void)
     printf("Transfer successful!\n");
     printf("Sender's remaining balance: %.2f\n", accounts[senderIndex].balance);
     printf("Receiver's new balance: %.2f\n", accounts[receiverIndex].balance);
+    if (!saveAccounts())
+        printf("Warning: this change is not safely saved to disk.\n");
 }
 
 void applyLoan(void)
@@ -414,6 +514,8 @@ void applyLoan(void)
             printf("Loan recorded successfully for this educational simulation.\n");
             printf("Outstanding loan: %.2f\n", accounts[i].loan);
             printf("Available balance: %.2f\n", accounts[i].balance);
+            if (!saveAccounts())
+                printf("Warning: this change is not safely saved to disk.\n");
             return;
         }
     }
