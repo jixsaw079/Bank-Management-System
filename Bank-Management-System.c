@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <time.h>
 
 #define MAX_ACCOUNTS 100
 
@@ -19,6 +20,7 @@ struct Account accounts[MAX_ACCOUNTS];
 int accountCount = 0;
 int nextAccountNumber = 1001;
 #define DATA_FILE "accounts.txt"
+#define TRANSACTION_FILE "transactions.txt"
 
 void clearInputBuffer(void);
 int readInt(const char prompt[], int *value);
@@ -34,6 +36,8 @@ void applyLoan(void);
 void repayLoan(void);
 int loadAccounts(void);
 int saveAccounts(void);
+int recordTransaction(int accountNumber, const char type[], float amount, float balance);
+void viewTransactionHistory(void);
 
 int main(void)
 {
@@ -55,6 +59,7 @@ int main(void)
         printf("6. Transfer Money\n");
         printf("7. Apply For Loan\n");
         printf("8. Repay Loan\n");
+        printf("9. View Transaction History\n");
         printf("0. Exit\n");
 
         if (!readInt("Enter choice: ", &choice))
@@ -79,6 +84,8 @@ int main(void)
             applyLoan();
         else if (choice == 8)
             repayLoan();
+        else if (choice == 9)
+            viewTransactionHistory();
         else if (choice == 0)
         {
             if (!saveAccounts())
@@ -170,6 +177,118 @@ int saveAccounts(void)
     }
 
     return 1;
+}
+
+/* Append one successful balance-changing operation to the transaction log. */
+int recordTransaction(int accountNumber, const char type[], float amount, float balance)
+{
+    FILE *file;
+    time_t now;
+    struct tm *localTime;
+    char timestamp[20];
+
+    now = time(NULL);
+    localTime = localtime(&now);
+
+    if (localTime == NULL ||
+        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localTime) == 0)
+    {
+        printf("Error: could not create a transaction timestamp.\n");
+        return 0;
+    }
+
+    file = fopen(TRANSACTION_FILE, "a");
+    if (file == NULL)
+    {
+        printf("Error: could not open %s for writing.\n", TRANSACTION_FILE);
+        return 0;
+    }
+
+    if (fprintf(file, "%d|%s|%.2f|%.2f|%s\n",
+                accountNumber, type, amount, balance, timestamp) < 0)
+    {
+        fclose(file);
+        printf("Error: failed while writing transaction history.\n");
+        return 0;
+    }
+
+    if (fclose(file) != 0)
+    {
+        printf("Error: could not finish saving transaction history.\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+/* Show all saved transactions for an account number. */
+void viewTransactionHistory(void)
+{
+    FILE *file;
+    int accountNumber;
+    int savedAccountNumber;
+    int foundAccount = 0;
+    int foundTransaction = 0;
+    float amount;
+    float balance;
+    char type[32];
+    char timestamp[64];
+    int i;
+
+    if (!readInt("Enter account number: ", &accountNumber))
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    for (i = 0; i < accountCount; i++)
+    {
+        if (accounts[i].accountNumber == accountNumber)
+        {
+            foundAccount = 1;
+            break;
+        }
+    }
+
+    if (!foundAccount)
+    {
+        printf("Account not found.\n");
+        return;
+    }
+
+    file = fopen(TRANSACTION_FILE, "r");
+    if (file == NULL)
+    {
+        printf("No transaction history found for this account yet.\n");
+        return;
+    }
+
+    printf("\n========== TRANSACTION HISTORY ==========\n");
+    printf("Account: %d\n", accountNumber);
+    printf("%-20s %-18s %-12s %s\n",
+           "Date / Time", "Transaction", "Amount", "Balance After");
+    printf("--------------------------------------------------------------------------\n");
+
+    while (fscanf(file, "%d|%31[^|]|%f|%f|%63[^\n]\n",
+                  &savedAccountNumber, type, &amount, &balance, timestamp) == 5)
+    {
+        if (savedAccountNumber == accountNumber)
+        {
+            printf("%-20s %-18s %10.2f %16.2f\n",
+                   timestamp, type, amount, balance);
+            foundTransaction = 1;
+        }
+    }
+
+    if (ferror(file))
+        printf("Warning: an error occurred while reading transaction history.\n");
+
+    fclose(file);
+
+    if (!foundTransaction)
+        printf("No transactions recorded for this account yet.\n");
+
+    printf("==========================================\n");
 }
 
 /* Remove any extra characters left on the current input line. */
@@ -296,6 +415,10 @@ void createAccount(void)
     printf("Account number: %d\n", accounts[accountCount].accountNumber);
 
     accountCount++;
+    if (initialDeposit > 0 &&
+        !recordTransaction(accounts[accountCount - 1].accountNumber, "INITIAL_DEPOSIT",
+                           initialDeposit, accounts[accountCount - 1].balance))
+        printf("Warning: the initial deposit was not added to transaction history.\n");
     if (!saveAccounts())
         printf("Warning: this change is not safely saved to disk.\n");
 }
@@ -350,6 +473,8 @@ void depositMoney(void)
             accounts[i].balance += amount;
             printf("Deposit successful!\n");
             printf("New balance: %.2f\n", accounts[i].balance);
+            if (!recordTransaction(accounts[i].accountNumber, "DEPOSIT", amount, accounts[i].balance))
+                printf("Warning: deposit history could not be saved.\n");
             if (!saveAccounts())
                 printf("Warning: this change is not safely saved to disk.\n");
             return;
@@ -396,6 +521,8 @@ void withdrawMoney(void)
             accounts[i].balance -= amount;
             printf("Withdrawal successful!\n");
             printf("Remaining balance: %.2f\n", accounts[i].balance);
+            if (!recordTransaction(accounts[i].accountNumber, "WITHDRAWAL", amount, accounts[i].balance))
+                printf("Warning: withdrawal history could not be saved.\n");
             if (!saveAccounts())
                 printf("Warning: this change is not safely saved to disk.\n");
             return;
@@ -514,6 +641,10 @@ void transferMoney(void)
     printf("Transfer successful!\n");
     printf("Sender's remaining balance: %.2f\n", accounts[senderIndex].balance);
     printf("Receiver's new balance: %.2f\n", accounts[receiverIndex].balance);
+    if (!recordTransaction(accounts[senderIndex].accountNumber, "TRANSFER_OUT", amount, accounts[senderIndex].balance))
+        printf("Warning: sender transfer history could not be saved.\n");
+    if (!recordTransaction(accounts[receiverIndex].accountNumber, "TRANSFER_IN", amount, accounts[receiverIndex].balance))
+        printf("Warning: receiver transfer history could not be saved.\n");
     if (!saveAccounts())
         printf("Warning: this change is not safely saved to disk.\n");
 }
@@ -552,6 +683,8 @@ void applyLoan(void)
             printf("Loan recorded successfully for this educational simulation.\n");
             printf("Outstanding loan: %.2f\n", accounts[i].loan);
             printf("Available balance: %.2f\n", accounts[i].balance);
+            if (!recordTransaction(accounts[i].accountNumber, "LOAN", amount, accounts[i].balance))
+                printf("Warning: loan history could not be saved.\n");
             if (!saveAccounts())
                 printf("Warning: this change is not safely saved to disk.\n");
             return;
@@ -615,6 +748,8 @@ void repayLoan(void)
             printf("Loan repayment successful!\n");
             printf("Remaining loan: %.2f\n", accounts[i].loan);
             printf("Remaining balance: %.2f\n", accounts[i].balance);
+            if (!recordTransaction(accounts[i].accountNumber, "LOAN_REPAYMENT", amount, accounts[i].balance))
+                printf("Warning: loan repayment history could not be saved.\n");
             if (!saveAccounts())
                 printf("Warning: this change is not safely saved to disk.\n");
             return;
