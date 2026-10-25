@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <float.h>
+#include <limits.h>
 #include <time.h>
 
 #define MAX_ACCOUNTS 100
@@ -25,6 +27,7 @@ int nextAccountNumber = 1001;
 void clearInputBuffer(void);
 int readInt(const char prompt[], int *value);
 int readFloat(const char prompt[], float *value);
+int canAddAmount(float current, float amount);
 int readName(char name[]);
 void createAccount(void);
 void viewAccounts(void);
@@ -132,7 +135,12 @@ int loadAccounts(void)
         }
 
         if (accounts[accountCount].accountNumber >= nextAccountNumber)
-            nextAccountNumber = accounts[accountCount].accountNumber + 1;
+        {
+            if (accounts[accountCount].accountNumber >= INT_MAX - 1)
+                nextAccountNumber = INT_MAX;
+            else
+                nextAccountNumber = accounts[accountCount].accountNumber + 1;
+        }
 
         accountCount++;
         loaded = 1;
@@ -302,18 +310,43 @@ void clearInputBuffer(void)
     }
 }
 
-/* Read an integer safely. */
+/* Read an integer safely, rejecting malformed and out-of-range input. */
 int readInt(const char prompt[], int *value)
 {
+    char input[100];
+    char *end;
+    long number;
+    int character;
+
     printf("%s", prompt);
 
-    if (scanf("%d", value) != 1)
-    {
-        clearInputBuffer();
+    if (fgets(input, sizeof(input), stdin) == NULL)
         return 0;
+
+    if (strchr(input, '\n') == NULL)
+    {
+        character = getchar();
+        if (character != '\n' && character != EOF)
+        {
+            while (character != '\n' && character != EOF)
+                character = getchar();
+            return 0;
+        }
     }
 
-    clearInputBuffer();
+    errno = 0;
+    number = strtol(input, &end, 10);
+
+    if (end == input)
+        return 0;
+
+    while (isspace((unsigned char)*end))
+        end++;
+
+    if (*end != '\0' || errno == ERANGE || number < INT_MIN || number > INT_MAX)
+        return 0;
+
+    *value = (int)number;
     return 1;
 }
 
@@ -366,20 +399,85 @@ int readFloat(const char prompt[], float *value)
     return 1;
 }
 
-/* Read a name that may contain spaces, with room for the null character. */
+/* Read and validate a name; reject numeric-only and unsupported input. */
 int readName(char name[])
 {
+    char input[100];
+    size_t length;
+    size_t start = 0;
+    size_t end;
+    size_t i;
+    int hasLetter = 0;
+    int character;
+
     printf("Enter name: ");
 
-    if (scanf(" %49[^\n]", name) != 1)
+    if (fgets(input, sizeof(input), stdin) == NULL)
+        return 0;
+
+    if (strchr(input, '\n') == NULL)
     {
-        clearInputBuffer();
-        printf("Invalid name. Please try again.\n");
+        character = getchar();
+        if (character != '\n' && character != EOF)
+        {
+            while (character != '\n' && character != EOF)
+                character = getchar();
+
+            printf("Name is too long. Please enter a shorter name.\n");
+            return 0;
+        }
+    }
+
+    length = strlen(input);
+
+    while (start < length && isspace((unsigned char)input[start]))
+        start++;
+
+    end = length;
+    while (end > start && isspace((unsigned char)input[end - 1]))
+        end--;
+
+    if (start == end || end - start >= sizeof(((struct Account *)0)->name))
+    {
+        printf("Invalid name. Enter a name containing letters.\n");
         return 0;
     }
 
-    clearInputBuffer();
+    for (i = start; i < end; i++)
+    {
+        unsigned char ch = (unsigned char)input[i];
+
+        if (isalpha(ch) || ch >= 128)
+        {
+            hasLetter = 1;
+        }
+        else if (isspace(ch) || ch == '-' || ch == '\'' || ch == '.')
+        {
+            /* Allow spaces and common punctuation used in names. */
+        }
+        else
+        {
+            printf("Invalid name. Use letters, spaces, hyphens, apostrophes, or periods.\n");
+            return 0;
+        }
+    }
+
+    if (!hasLetter)
+    {
+        printf("Invalid name. A name cannot contain only numbers or punctuation.\n");
+        return 0;
+    }
+
+    memcpy(name, input + start, end - start);
+    name[end - start] = '\0';
     return 1;
+}
+
+/* Check whether adding a positive amount stays within the finite float range. */
+int canAddAmount(float current, float amount)
+{
+    return isfinite(current) && isfinite(amount) && current >= 0.0f &&
+           amount > 0.0f && amount <= FLT_MAX - current;
 }
 
 void createAccount(void)
@@ -389,6 +487,12 @@ void createAccount(void)
     if (accountCount >= MAX_ACCOUNTS)
     {
         printf("Account limit reached. No more accounts can be created.\n");
+        return;
+    }
+
+    if (nextAccountNumber <= 0 || nextAccountNumber == INT_MAX)
+    {
+        printf("Cannot create another account because the account number range has been reached.\n");
         return;
     }
 
@@ -467,6 +571,12 @@ void depositMoney(void)
             if (amount <= 0)
             {
                 printf("Deposit amount must be greater than zero.\n");
+                return;
+            }
+
+            if (!canAddAmount(accounts[i].balance, amount))
+            {
+                printf("Deposit would exceed the supported balance range.\n");
                 return;
             }
 
@@ -635,6 +745,12 @@ void transferMoney(void)
         return;
     }
 
+    if (!canAddAmount(accounts[receiverIndex].balance, amount))
+    {
+        printf("Transfer would exceed the receiver's supported balance range.\n");
+        return;
+    }
+
     accounts[senderIndex].balance -= amount;
     accounts[receiverIndex].balance += amount;
 
@@ -674,6 +790,13 @@ void applyLoan(void)
             if (amount <= 0)
             {
                 printf("Loan amount must be greater than zero.\n");
+                return;
+            }
+
+            if (!canAddAmount(accounts[i].loan, amount) ||
+                !canAddAmount(accounts[i].balance, amount))
+            {
+                printf("Loan would exceed the supported numeric range.\n");
                 return;
             }
 
@@ -732,8 +855,8 @@ void repayLoan(void)
 
             if (amount > accounts[i].loan)
             {
-                amount = accounts[i].loan;
-                printf("Repayment adjusted to the outstanding loan amount.\n");
+                printf("Repayment cannot exceed the outstanding loan.\n");
+                return;
             }
 
             if (amount > accounts[i].balance)
