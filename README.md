@@ -13,6 +13,9 @@ A menu-driven, console-based banking simulation built in **C** as a university l
 - Record a loan and repay an outstanding loan
 - Handle invalid menu choices, non-numeric input, unknown account numbers, and invalid amounts
 - Save account records to `accounts.txt` and load them on the next launch
+- Record initial deposits, deposits, withdrawals, transfers, loans, and loan repayments in `transactions.txt`
+- View transaction history for a specific account, including date/time, transaction type, amount, and resulting balance
+- Append transaction records so history is preserved between program runs
 - Save account changes after successful operations and when exiting
 
 ## Built with
@@ -73,7 +76,7 @@ The program runs in the terminal and presents a numbered menu. Choose an operati
 
 ## Data persistence
 
-The program stores records in a local file named `accounts.txt`, in the **current working directory** from which it is run. On startup, it attempts to load saved records; successful account operations write the updated records back to the file.
+The program stores account records in `accounts.txt` and transaction records in `transactions.txt`, both in the **current working directory** from which it is run. On startup, it attempts to load saved accounts. Successful balance-changing operations append a transaction record to `transactions.txt`; account changes are written back to `accounts.txt`.
 
 Each record uses this format:
 
@@ -84,9 +87,9 @@ accountNumber|name|balance|outstandingLoan
 - Account numbering starts at `1001` and continues after the highest account number loaded from the file.
 - The program supports up to **100 accounts**.
 - The pipe character (`|`) is the field separator, so avoid using it in account names.
-- The `.gitignore` file excludes `accounts.txt` and compiled executables so local generated data is not accidentally committed.
+- The `.gitignore` file excludes both `accounts.txt` and `transactions.txt`, as well as compiled executables, so local generated data is not accidentally committed.
 
-**Important:** Keep `accounts.txt` if you want to preserve your local test records. Deleting it removes the saved records from this program's view. Do not put real or sensitive personal information in the file.
+**Important:** Keep both `accounts.txt` and `transactions.txt` if you want to preserve local test records and their history. Deleting either file removes that file's saved data from the program's view. Do not put real or sensitive personal information in these files.
 
 ## Project structure
 
@@ -105,7 +108,8 @@ Bank-Management-System/
 - Account data is stored in plain text without authentication, encryption, or database-level protection.
 - The program uses `float` for monetary values; real financial systems should use a carefully designed representation such as integer minor units or a suitable decimal type.
 - Loan requests are recorded immediately for demonstration; there is no credit assessment or approval workflow.
-- There is no concurrent-user handling, audit log, or transaction recovery mechanism.
+- Transaction history is a simple local text log; it is not tamper-proof and does not provide database transactions or crash recovery.
+- There is no concurrent-user handling or transaction recovery mechanism.
 - Input validation is basic and the program is intended for local, single-user use.
 
 ## What this project demonstrates
@@ -115,6 +119,7 @@ Bank-Management-System/
 - Separating tasks into functions
 - Validating console input and checking account operations
 - Reading and writing structured records with `fopen`, `fscanf`, `fprintf`, and `fclose`
+- Appending transaction records and formatting local date/time with the C time library
 - Using Git and GitHub to version and publish a project
 
 ## Testing
