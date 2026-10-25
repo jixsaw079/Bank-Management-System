@@ -9,3 +9,8 @@ accounts.txt
 # Temporary files
 *.o
 *.obj
+
+# Common local build outputs
+/bank
+/bank_management
+*.out
