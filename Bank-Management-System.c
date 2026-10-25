@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
 #include <math.h>
 
 #define MAX_ACCOUNTS 100
@@ -194,18 +198,52 @@ int readInt(const char prompt[], int *value)
     return 1;
 }
 
-/* Read a number and reject invalid values such as text or infinity. */
+/* Read a complete line and reject malformed or out-of-range numbers. */
 int readFloat(const char prompt[], float *value)
 {
+    char input[100];
+    char *end;
+    float number;
+    int character;
+
     printf("%s", prompt);
 
-    if (scanf("%f", value) != 1 || !isfinite(*value))
-    {
-        clearInputBuffer();
+    if (fgets(input, sizeof(input), stdin) == NULL)
         return 0;
+
+    /* Reject input lines that are longer than the buffer. */
+    if (strchr(input, '\n') == NULL)
+    {
+        character = getchar();
+
+        if (character != '\n' && character != EOF)
+        {
+            while (character != '\n' && character != EOF)
+                character = getchar();
+
+            return 0;
+        }
     }
 
-    clearInputBuffer();
+    errno = 0;
+    number = strtof(input, &end);
+
+    /* Reject input that contains no number. */
+    if (end == input)
+        return 0;
+
+    /* Allow trailing whitespace, but reject any other extra characters. */
+    while (isspace((unsigned char)*end))
+        end++;
+
+    if (*end != '\0')
+        return 0;
+
+    /* Reject overflow, underflow, infinity, and NaN. */
+    if (errno == ERANGE || !isfinite(number))
+        return 0;
+
+    *value = number;
     return 1;
 }
 
