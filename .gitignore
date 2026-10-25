@@ -5,6 +5,7 @@ a.out
 
 # Generated banking data
 accounts.txt
+transactions.txt
 
 # Temporary files
 *.o
