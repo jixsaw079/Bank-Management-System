@@ -1,0 +1,11 @@
+
+# Compiled C programs
+*.exe
+a.out
+
+# Generated banking data
+accounts.txt
+
+# Temporary files
+*.o
+*.obj
