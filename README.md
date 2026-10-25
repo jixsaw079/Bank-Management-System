@@ -23,7 +23,7 @@ A menu-driven, console-based banking simulation built in **C** as a university l
 - **Language:** C (C11-compatible compiler recommended)
 - **Compiler:** GCC
 - **Concepts:** structures, arrays, functions, loops, conditionals, console input/output, and file handling
-- **Storage:** local plain-text file
+- **Storage:** local plain-text files
 
 ## Getting started
 
@@ -47,16 +47,16 @@ Alternatively, download the repository as a ZIP and open the extracted folder in
 **Windows (PowerShell with GCC/MinGW):**
 
 ```powershell
-gcc -std=c11 -Wall -Wextra -pedantic Bank-Management-System.c -o bank.exe
+gcc -std=c11 -Wall -Wextra -Wpedantic Bank-Management-System.c -o bank.exe
 ```
 
 **Linux or macOS:**
 
 ```bash
-gcc -std=c11 -Wall -Wextra -pedantic Bank-Management-System.c -o bank
+gcc -std=c11 -Wall -Wextra -Wpedantic Bank-Management-System.c -o bank
 ```
 
-Warnings from the compiler should be reviewed rather than ignored. If your compiler reports a platform-specific issue, use a current GCC version.
+Review compiler warnings rather than ignoring them. If your compiler reports a platform-specific issue, use a current GCC version.
 
 ### 3. Run
 
@@ -76,9 +76,9 @@ The program runs in the terminal and presents a numbered menu. Choose an operati
 
 ## Data persistence
 
-The program stores account records in `accounts.txt` and transaction records in `transactions.txt`, both in the **current working directory** from which it is run. On startup, it attempts to load saved accounts. Successful balance-changing operations append a transaction record to `transactions.txt`; account changes are written back to `accounts.txt`.
+The program stores account records in `accounts.txt` and transaction records in `transactions.txt`, both in the **current working directory** from which it is run. On startup, it attempts to load saved accounts. Successful balance-changing operations append transaction records to `transactions.txt`; account changes are written back to `accounts.txt`.
 
-Each record uses this format:
+Each account record uses this format:
 
 ```text
 accountNumber|name|balance|outstandingLoan
@@ -87,9 +87,9 @@ accountNumber|name|balance|outstandingLoan
 - Account numbering starts at `1001` and continues after the highest account number loaded from the file.
 - The program supports up to **100 accounts**.
 - The pipe character (`|`) is the field separator, so avoid using it in account names.
-- The `.gitignore` file excludes both `accounts.txt` and `transactions.txt`, as well as compiled executables, so local generated data is not accidentally committed.
+- The `.gitignore` file excludes `accounts.txt`, `transactions.txt`, and compiled executables so local generated data is not accidentally committed.
 
-**Important:** Keep both `accounts.txt` and `transactions.txt` if you want to preserve local test records and their history. Deleting either file removes that file's saved data from the program's view. Do not put real or sensitive personal information in these files.
+**Important:** Keep both data files if you want to preserve local test records and their history. Deleting either file removes that file's saved data from the program's view. Do not put real or sensitive personal information in these files.
 
 ## Project structure
 
@@ -99,8 +99,14 @@ Bank-Management-System/
 ├── README.md                  # Project overview and run instructions
 ├── .gitignore                 # Excludes generated files and build artifacts
 └── docs/
-    └── TESTING.md             # Manual test checklist
+    └── TESTING.md             # Manual QA results and scope
 ```
+
+## Testing and QA
+
+The project has been manually tested for core menu/input validation, valid and invalid deposits and withdrawals, transfers between existing accounts, transfers to unknown accounts, transaction history, and account persistence after restarting. The recorded results and test scope are in [`docs/TESTING.md`](docs/TESTING.md).
+
+These are manual checks, not an automated test suite. Missing-file recovery, corrupted-file handling, and the maximum account-capacity limit are not claimed as tested.
 
 ## Known limitations
 
@@ -110,7 +116,7 @@ Bank-Management-System/
 - Loan requests are recorded immediately for demonstration; there is no credit assessment or approval workflow.
 - Transaction history is a simple local text log; it is not tamper-proof and does not provide database transactions or crash recovery.
 - There is no concurrent-user handling or transaction recovery mechanism.
-- Input validation is basic and the program is intended for local, single-user use.
+- Input validation is intended for a local, single-user console application.
 
 ## What this project demonstrates
 
@@ -118,13 +124,9 @@ Bank-Management-System/
 - Managing a collection of records with an array
 - Separating tasks into functions
 - Validating console input and checking account operations
-- Reading and writing structured records with `fopen`, `fscanf`, `fprintf`, and `fclose`
+- Reading and writing structured records with standard C file I/O
 - Appending transaction records and formatting local date/time with the C time library
 - Using Git and GitHub to version and publish a project
-
-## Testing
-
-See [the manual testing checklist](docs/TESTING.md) for suggested scenarios covering account creation, deposits, withdrawals, transfers, loans, invalid input, and persistence across restarts.
 
 ## Project links
 
@@ -133,4 +135,4 @@ See [the manual testing checklist](docs/TESTING.md) for suggested scenarios cove
 
 ## Academic note
 
-This project was developed for learning and demonstration. Be prepared to explain the code and the design decisions in your own words during an assignment presentation or viva.
+This project was developed for learning and demonstration. Be prepared to explain the code and design decisions in your own words during an assignment presentation or viva.
