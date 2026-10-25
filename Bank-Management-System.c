@@ -399,19 +399,77 @@ int readFloat(const char prompt[], float *value)
     return 1;
 }
 
-/* Read a name that may contain spaces, with room for the null character. */
+/* Read and validate a name; reject numeric-only and unsupported input. */
 int readName(char name[])
 {
+    char input[100];
+    size_t length;
+    size_t start = 0;
+    size_t end;
+    size_t i;
+    int hasLetter = 0;
+    int character;
+
     printf("Enter name: ");
 
-    if (scanf(" %49[^\n]", name) != 1)
+    if (fgets(input, sizeof(input), stdin) == NULL)
+        return 0;
+
+    if (strchr(input, '\n') == NULL)
     {
-        clearInputBuffer();
-        printf("Invalid name. Please try again.\n");
+        character = getchar();
+        if (character != '\n' && character != EOF)
+        {
+            while (character != '\n' && character != EOF)
+                character = getchar();
+
+            printf("Name is too long. Please enter a shorter name.\n");
+            return 0;
+        }
+    }
+
+    length = strlen(input);
+
+    while (start < length && isspace((unsigned char)input[start]))
+        start++;
+
+    end = length;
+    while (end > start && isspace((unsigned char)input[end - 1]))
+        end--;
+
+    if (start == end || end - start >= sizeof(((struct Account *)0)->name))
+    {
+        printf("Invalid name. Enter a name containing letters.\n");
         return 0;
     }
 
-    clearInputBuffer();
+    for (i = start; i < end; i++)
+    {
+        unsigned char ch = (unsigned char)input[i];
+
+        if (isalpha(ch) || ch >= 128)
+        {
+            hasLetter = 1;
+        }
+        else if (isspace(ch) || ch == '-' || ch == '\'' || ch == '.')
+        {
+            /* Allow spaces and common punctuation used in names. */
+        }
+        else
+        {
+            printf("Invalid name. Use letters, spaces, hyphens, apostrophes, or periods.\n");
+            return 0;
+        }
+    }
+
+    if (!hasLetter)
+    {
+        printf("Invalid name. A name cannot contain only numbers or punctuation.\n");
+        return 0;
+    }
+
+    memcpy(name, input + start, end - start);
+    name[end - start] = '\0';
     return 1;
 }
 
