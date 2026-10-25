@@ -310,11 +310,9 @@ void clearInputBuffer(void)
     }
 }
 
-/* Read an integer safely. */
+/* Read an integer safely, rejecting malformed and out-of-range input. */
 int readInt(const char prompt[], int *value)
 {
-    printf("%s", prompt);
-
     char input[100];
     char *end;
     long number;
