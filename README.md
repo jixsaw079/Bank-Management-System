@@ -1,67 +1,131 @@
 # Bank Management System in C
 
-A beginner-friendly, menu-driven Bank Management System written in C for a first-semester university project. The program demonstrates structures, arrays, functions, loops, conditional statements, and basic input validation in a single C source file.
+A menu-driven, console-based banking simulation built in **C** as a university learning project. It keeps the implementation in a single C source file and uses standard file I/O to save account records between runs.
+
+> **Educational project only.** This program is not connected to a real bank and is not suitable for real financial data or production use.
 
 ## Features
 
-- Create an account with an automatically assigned account number
-- View all created accounts
-- Deposit money
-- Withdraw money while checking for sufficient balance
-- Check an account's balance and outstanding loan
-- Transfer money between two different accounts
-- Record a loan for an account
-- Repay an outstanding loan
-- Reject invalid amounts and handle account numbers that cannot be found
-- Save account records in `accounts.txt` and reload them at startup
-- Automatically save changes after account creation, deposits, withdrawals, transfers, and loan operations
+- Create accounts with automatically assigned account numbers
+- View all saved accounts and check an account's balance
+- Deposit and withdraw money with basic amount and balance checks
+- Transfer funds between two different accounts
+- Record a loan and repay an outstanding loan
+- Handle invalid menu choices, non-numeric input, unknown account numbers, and invalid amounts
+- Save account records to `accounts.txt` and load them on the next launch
+- Save account changes after successful operations and when exiting
 
-## Requirements
+## Built with
 
-- A C compiler, such as GCC
-- A terminal or command prompt
+- **Language:** C (C11-compatible compiler recommended)
+- **Compiler:** GCC
+- **Concepts:** structures, arrays, functions, loops, conditionals, console input/output, and file handling
+- **Storage:** local plain-text file
 
-## Compile and run
+## Getting started
 
-Save or download `Bank-Management-System.c`, then run these commands in the folder containing the file:
+### Requirements
+
+- [Git](https://git-scm.com/) (optional, for cloning the repository)
+- GCC or another compatible C compiler
+- A terminal, such as the VS Code integrated terminal
+
+### 1. Clone the repository
 
 ```bash
-gcc -std=c11 -Wall -Wextra -pedantic Bank-Management-System.c -o bank_management
-./bank_management
+git clone https://github.com/jixsaw079/Bank-Management-System.git
+cd Bank-Management-System
 ```
 
-On Windows, run the compiled program with:
+Alternatively, download the repository as a ZIP and open the extracted folder in VS Code.
+
+### 2. Compile
+
+**Windows (PowerShell with GCC/MinGW):**
+
+```powershell
+gcc -std=c11 -Wall -Wextra -pedantic Bank-Management-System.c -o bank.exe
+```
+
+**Linux or macOS:**
+
+```bash
+gcc -std=c11 -Wall -Wextra -pedantic Bank-Management-System.c -o bank
+```
+
+Warnings from the compiler should be reviewed rather than ignored. If your compiler reports a platform-specific issue, use a current GCC version.
+
+### 3. Run
+
+**Windows:**
+
+```powershell
+.\bank.exe
+```
+
+**Linux or macOS:**
+
+```bash
+./bank
+```
+
+The program runs in the terminal and presents a numbered menu. Choose an operation by entering its menu number.
+
+## Data persistence
+
+The program stores records in a local file named `accounts.txt`, in the **current working directory** from which it is run. On startup, it attempts to load saved records; successful account operations write the updated records back to the file.
+
+Each record uses this format:
 
 ```text
-bank_management.exe
+accountNumber|name|balance|outstandingLoan
 ```
 
-If your compiler reports an issue with `isfinite`, use a C11-compatible compiler such as a current version of GCC.
+- Account numbering starts at `1001` and continues after the highest account number loaded from the file.
+- The program supports up to **100 accounts**.
+- The pipe character (`|`) is the field separator, so avoid using it in account names.
+- The `.gitignore` file excludes `accounts.txt` and compiled executables so local generated data is not accidentally committed.
 
-## File storage
+**Important:** Keep `accounts.txt` if you want to preserve your local test records. Deleting it removes the saved records from this program's view. Do not put real or sensitive personal information in the file.
 
-The program uses standard C file handling to store account records in a text file named `accounts.txt` in the program's current working directory. It loads saved records when it starts and saves account changes after successful operations and when exiting. Keep `accounts.txt` in the same working directory when you run the program again.
+## Project structure
 
-Each line stores the account number, name, balance, and outstanding loan separated by `|`. Avoid using the `|` character in account names because it is used as the file's field separator.
+```text
+Bank-Management-System/
+├── Bank-Management-System.c   # Complete program in one C source file
+├── README.md                  # Project overview and run instructions
+├── .gitignore                 # Excludes generated files and build artifacts
+└── docs/
+    └── TESTING.md             # Manual test checklist
+```
 
-The first account number is `1001`; new account numbers continue after the highest account number loaded from the file. The program supports up to 100 accounts.
+## Known limitations
 
-## Important limitations
+- This is a learning exercise, not production banking software.
+- Account data is stored in plain text without authentication, encryption, or database-level protection.
+- The program uses `float` for monetary values; real financial systems should use a carefully designed representation such as integer minor units or a suitable decimal type.
+- Loan requests are recorded immediately for demonstration; there is no credit assessment or approval workflow.
+- There is no concurrent-user handling, audit log, or transaction recovery mechanism.
+- Input validation is basic and the program is intended for local, single-user use.
 
-- **Keep the data file:** account records persist in `accounts.txt`. If that file is deleted or moved, the program will not find those saved records.
-- This is an educational simulation, not real banking software. It does not connect to a bank or use a real database.
-- Loan applications are recorded immediately for demonstration purposes; there is no real credit assessment or approval process.
-- Money values use `float` for introductory learning. Real financial systems require more careful monetary representation and security controls.
+## What this project demonstrates
 
-## Concepts demonstrated
+- Defining and using a `struct` to represent an account
+- Managing a collection of records with an array
+- Separating tasks into functions
+- Validating console input and checking account operations
+- Reading and writing structured records with `fopen`, `fscanf`, `fprintf`, and `fclose`
+- Using Git and GitHub to version and publish a project
 
-- `struct` and arrays of structures
-- Functions and function declarations
-- `if` / `else` statements and loops
-- Console input/output with `scanf` and `printf`
-- File input/output with `fopen`, `fscanf`, `fprintf`, and `fclose`
-- Basic input validation and account lookup
+## Testing
+
+See [the manual testing checklist](docs/TESTING.md) for suggested scenarios covering account creation, deposits, withdrawals, transfers, loans, invalid input, and persistence across restarts.
+
+## Project links
+
+- **Source repository:** https://github.com/jixsaw079/Bank-Management-System
+- **Portfolio project page:** https://jixsaw079.github.io/projects/bank-management-system/
 
 ## Academic note
 
-This project is intended for learning and demonstration. Make sure you understand how each function works so you can explain the code during your assignment presentation or viva.
+This project was developed for learning and demonstration. Be prepared to explain the code and the design decisions in your own words during an assignment presentation or viva.
